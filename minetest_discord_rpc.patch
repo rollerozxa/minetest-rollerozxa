@@ -1,0 +1,148 @@
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index 2a2adfaf0..77e3887d1 100644
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -201,6 +201,22 @@ if(ENABLE_REDIS)
+ endif(ENABLE_REDIS)
+ 
+ 
++OPTION(ENABLE_DISCORD "Enable discord rich presence" TRUE)
++set(USE_DISCORD FALSE)
++
++if(ENABLE_DISCORD)
++	find_library(DISCORD_LIBRARY discord-rpc)
++	find_path(DISCORD_INCLUDE_DIR discord_rpc.h PATH_SUFFIXES discord-rpc)
++	if(DISCORD_LIBRARY AND DISCORD_INCLUDE_DIR)
++		set(USE_DISCORD TRUE)
++		message(STATUS "Discord rich presence enabled.")
++		include_directories(${DISCORD_INCLUDE_DIR})
++	else(DISCORD_LIBRARY AND DISCORD_INCLUDE_DIR)
++		message(STATUS "Discord rich presence not found!")
++	endif(DISCORD_LIBRARY AND DISCORD_INCLUDE_DIR)
++endif(ENABLE_DISCORD)
++
++
+ find_package(SQLite3 REQUIRED)
+ 
+ OPTION(ENABLE_PROMETHEUS "Enable prometheus client support" FALSE)
+@@ -617,6 +633,9 @@ if(BUILD_CLIENT)
+ 	if (USE_REDIS)
+ 		target_link_libraries(${PROJECT_NAME} ${REDIS_LIBRARY})
+ 	endif()
++	if (USE_DISCORD)
++		target_link_libraries(${PROJECT_NAME} ${DISCORD_LIBRARY})
++	endif()
+ 	if (USE_PROMETHEUS)
+ 		target_link_libraries(${PROJECT_NAME} ${PROMETHEUS_LIBRARIES})
+ 	endif()
+diff --git a/src/client/CMakeLists.txt b/src/client/CMakeLists.txt
+index 8d058852a..93294ec66 100644
+--- a/src/client/CMakeLists.txt
++++ b/src/client/CMakeLists.txt
+@@ -14,6 +14,10 @@ if(USE_SOUND)
+ 		PARENT_SCOPE)
+ endif()
+ 
++if (USE_DISCORD)
++	set(DISCORD_SRC ${CMAKE_CURRENT_SOURCE_DIR}/discord.cpp)
++endif()
++
+ set(client_SRCS
+ 	${sound_SRCS}
+ 	${CMAKE_CURRENT_SOURCE_DIR}/meshgen/collector.cpp
+@@ -62,5 +66,6 @@ set(client_SRCS
+ 	${CMAKE_CURRENT_SOURCE_DIR}/shadows/dynamicshadowsrender.cpp
+ 	${CMAKE_CURRENT_SOURCE_DIR}/shadows/shadowsshadercallbacks.cpp	
+ 	${CMAKE_CURRENT_SOURCE_DIR}/shadows/shadowsScreenQuad.cpp	
++	${DISCORD_SRC}
+ 	PARENT_SCOPE
+ )
+diff --git a/src/client/clientlauncher.cpp b/src/client/clientlauncher.cpp
+index 6ab610670..787ee9e43 100644
+--- a/src/client/clientlauncher.cpp
++++ b/src/client/clientlauncher.cpp
+@@ -35,6 +35,10 @@ with this program; if not, write to the Free Software Foundation, Inc.,
+ #include "renderingengine.h"
+ #include "network/networkexceptions.h"
+ 
++#if USE_DISCORD
++	#include "discord.h"
++#endif
++
+ #if USE_SOUND
+ 	#include "sound_openal.h"
+ #endif
+@@ -85,6 +89,10 @@ ClientLauncher::~ClientLauncher()
+ #if USE_SOUND
+ 	g_sound_manager_singleton.reset();
+ #endif
++
++#if USE_DISCORD
++	g_discord.reset();
++#endif
+ }
+ 
+ 
+@@ -189,6 +197,14 @@ bool ClientLauncher::run(GameStartData &start_data, const Settings &cmd_args)
+ 	camera = g_menucloudsmgr->addCameraSceneNode(NULL, v3f(0, 0, 0), v3f(0, 60, 100));
+ 	camera->setFarValue(10000);
+ 
++	/*
++		Discord Rich Presence
++	*/
++#if USE_DISCORD
++	g_discord = Discord::createDiscordSingleton();
++	g_discord->init();
++#endif
++
+ 	/*
+ 		GUI stuff
+ 	*/
+@@ -478,8 +494,23 @@ bool ClientLauncher::launch_game(std::string &error_message,
+ 		start_data.name = "singleplayer";
+ 		start_data.password = "";
+ 		start_data.socket_port = myrand_range(49152, 65535);
++
++	#if USE_DISCORD
++		g_discord->setDetails("In Singleplayer");
++		g_discord->setState("");
++		g_discord->updatePresence();
++	#endif
+ 	} else {
+ 		g_settings->set("name", start_data.name);
++
++	#if USE_DISCORD
++		//g_discord->setDetails("Playing on " + menudata.address + ":" +
++		//		      menudata.port + " server");
++		g_discord->setDetails("Playing on a server");
++		//g_discord->setState(menudata.serverdescription);
++		g_discord->setState("");
++		g_discord->updatePresence();
++	#endif
+ 	}
+ 
+ 	if (start_data.name.length() > PLAYERNAME_SIZE - 1) {
+@@ -535,6 +566,11 @@ bool ClientLauncher::launch_game(std::string &error_message,
+ 
+ void ClientLauncher::main_menu(MainMenuData *menudata)
+ {
++#if USE_DISCORD
++	g_discord->setDetails("In Main Menu");
++	g_discord->setState("");
++	g_discord->updatePresence();
++#endif
+ 	bool *kill = porting::signal_handler_killstatus();
+ 	video::IVideoDriver *driver = m_rendering_engine->get_video_driver();
+ 
+diff --git a/src/cmake_config.h.in b/src/cmake_config.h.in
+index cfcee4b58..21ecc930a 100644
+--- a/src/cmake_config.h.in
++++ b/src/cmake_config.h.in
+@@ -27,6 +27,7 @@
+ #cmakedefine01 USE_SPATIAL
+ #cmakedefine01 USE_SYSTEM_GMP
+ #cmakedefine01 USE_REDIS
++#cmakedefine01 USE_DISCORD
+ #cmakedefine01 ENABLE_GLES
+ #cmakedefine01 HAVE_ENDIAN_H
+ #cmakedefine01 CURSES_HAVE_CURSES_H
