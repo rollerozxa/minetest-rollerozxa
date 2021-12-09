@@ -19,7 +19,6 @@ sha1sums=('SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP')
 
 conflicts=("${_pkgname}"{,-common,-server})
 provides=("${_pkgname}"{,-common,-server})
-install=install
 
 pkgver() {
 	git -C "${_pkgname}" describe --long --tags | sed 's/\([^-]*-g\)/r\1/;s/-/./g'
