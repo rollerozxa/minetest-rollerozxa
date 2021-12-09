@@ -1,12 +1,12 @@
 diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
-index 2a2adfaf0..77e3887d1 100644
+index 4803b475b..4644a7bc9 100644
 --- a/src/CMakeLists.txt
 +++ b/src/CMakeLists.txt
-@@ -201,6 +201,22 @@ if(ENABLE_REDIS)
+@@ -207,6 +207,22 @@ if(ENABLE_REDIS)
  endif(ENABLE_REDIS)
  
  
-+OPTION(ENABLE_DISCORD "Enable discord rich presence" TRUE)
++OPTION(ENABLE_DISCORD "Enable Discord rich presence" TRUE)
 +set(USE_DISCORD FALSE)
 +
 +if(ENABLE_DISCORD)
@@ -24,8 +24,8 @@ index 2a2adfaf0..77e3887d1 100644
 +
  find_package(SQLite3 REQUIRED)
  
- OPTION(ENABLE_PROMETHEUS "Enable prometheus client support" FALSE)
-@@ -617,6 +633,9 @@ if(BUILD_CLIENT)
+ 
+@@ -597,6 +613,9 @@ if(BUILD_CLIENT)
  	if (USE_REDIS)
  		target_link_libraries(${PROJECT_NAME} ${REDIS_LIBRARY})
  	endif()
@@ -58,7 +58,7 @@ index 8d058852a..93294ec66 100644
  	PARENT_SCOPE
  )
 diff --git a/src/client/clientlauncher.cpp b/src/client/clientlauncher.cpp
-index 6ab610670..787ee9e43 100644
+index 95be72ca0..2c372faf1 100644
 --- a/src/client/clientlauncher.cpp
 +++ b/src/client/clientlauncher.cpp
 @@ -35,6 +35,10 @@ with this program; if not, write to the Free Software Foundation, Inc.,
@@ -72,7 +72,7 @@ index 6ab610670..787ee9e43 100644
  #if USE_SOUND
  	#include "sound_openal.h"
  #endif
-@@ -85,6 +89,10 @@ ClientLauncher::~ClientLauncher()
+@@ -82,6 +86,10 @@ ClientLauncher::~ClientLauncher()
  #if USE_SOUND
  	g_sound_manager_singleton.reset();
  #endif
@@ -83,7 +83,7 @@ index 6ab610670..787ee9e43 100644
  }
  
  
-@@ -189,6 +197,14 @@ bool ClientLauncher::run(GameStartData &start_data, const Settings &cmd_args)
+@@ -186,6 +194,14 @@ bool ClientLauncher::run(GameStartData &start_data, const Settings &cmd_args)
  	camera = g_menucloudsmgr->addCameraSceneNode(NULL, v3f(0, 0, 0), v3f(0, 60, 100));
  	camera->setFarValue(10000);
  
@@ -98,14 +98,14 @@ index 6ab610670..787ee9e43 100644
  	/*
  		GUI stuff
  	*/
-@@ -478,8 +494,23 @@ bool ClientLauncher::launch_game(std::string &error_message,
+@@ -475,8 +491,23 @@ bool ClientLauncher::launch_game(std::string &error_message,
  		start_data.name = "singleplayer";
  		start_data.password = "";
  		start_data.socket_port = myrand_range(49152, 65535);
 +
 +	#if USE_DISCORD
-+		g_discord->setDetails("In Singleplayer");
-+		g_discord->setState("");
++		g_discord->setDetails("Playing in Singleplayer");
++		g_discord->setState("World: "+start_data.world_spec.name);
 +		g_discord->updatePresence();
 +	#endif
  	} else {
@@ -122,7 +122,7 @@ index 6ab610670..787ee9e43 100644
  	}
  
  	if (start_data.name.length() > PLAYERNAME_SIZE - 1) {
-@@ -535,6 +566,11 @@ bool ClientLauncher::launch_game(std::string &error_message,
+@@ -532,6 +563,11 @@ bool ClientLauncher::launch_game(std::string &error_message,
  
  void ClientLauncher::main_menu(MainMenuData *menudata)
  {
@@ -134,6 +134,180 @@ index 6ab610670..787ee9e43 100644
  	bool *kill = porting::signal_handler_killstatus();
  	video::IVideoDriver *driver = m_rendering_engine->get_video_driver();
  
+diff --git a/src/client/discord.cpp b/src/client/discord.cpp
+new file mode 100644
+index 000000000..df685d490
+--- /dev/null
++++ b/src/client/discord.cpp
+@@ -0,0 +1,115 @@
++/*
++Minetest
++Copyright (C) 2018 Dumbeldor, Vincent Glize <vincent.glize@live.fr>
++
++This program is free software; you can redistribute it and/or modify
++it under the terms of the GNU Lesser General Public License as published by
++the Free Software Foundation; either version 2.1 of the License, or
++(at your option) any later version.
++
++This program is distributed in the hope that it will be useful,
++but WITHOUT ANY WARRANTY; without even the implied warranty of
++MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++GNU Lesser General Public License for more details.
++
++You should have received a copy of the GNU Lesser General Public License along
++with this program; if not, write to the Free Software Foundation, Inc.,
++51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
++*/
++
++#include "discord.h"
++#include <ctime>
++#include "discord_rpc.h"
++#include <string>
++#include <assert.h>
++#include <log.h>
++#include <cstring>
++
++std::unique_ptr<Discord> g_discord;
++const std::string Discord::s_application_id = "857961580586467359";
++
++struct DataRichPresence
++{
++	std::string state = "";
++	std::string details = "";
++	uint64_t start_timestamp;
++	std::string large_image_key = "default";
++	std::string large_image_text = "Minetest is a FOSS voxel-based game engine.";
++	std::string small_image_key = "";
++	std::string small_image_text = "";
++	std::string party_id = "";
++	uint32_t party_size = 0;
++	uint32_t party_max = 0;
++};
++
++Discord::Discord()
++{
++	m_data = std::unique_ptr<DataRichPresence>(new DataRichPresence);
++	m_data->start_timestamp = time(0);
++}
++
++Discord::~Discord()
++{
++	Discord_Shutdown();
++}
++
++std::unique_ptr<Discord> Discord::createDiscordSingleton()
++{
++	assert(!g_discord);
++	return std::unique_ptr<Discord>(new Discord());
++}
++
++void Discord::init()
++{
++	DiscordEventHandlers handlers{};
++	/*
++		Handlers list :
++		ready, disconnected, errored, joinGame, spectateGame, joinRequest
++	*/
++	//handlers.ready = Discord::handleDiscordReady;
++	//handlers.errored = Discord::handleDiscordError;
++	Discord_Shutdown();
++	Discord_Initialize(s_application_id.c_str(), &handlers, 1, NULL);
++}
++
++void Discord::setState(const std::string &state)
++{
++	m_data->state = state.substr(0, 128);
++}
++
++void Discord::setDetails(const std::string &details)
++{
++	m_data->details = details.substr(0, 128);
++}
++
++void Discord::updatePresence()
++{
++	DiscordRichPresence discord_presence;
++	memset(&discord_presence, 0, sizeof(discord_presence));
++
++	discord_presence.state = m_data->state.c_str();
++	discord_presence.details = m_data->details.c_str();
++	discord_presence.startTimestamp = m_data->start_timestamp;
++	discord_presence.largeImageKey = m_data->large_image_key.c_str();
++	discord_presence.largeImageText = m_data->large_image_text.c_str();
++	discord_presence.smallImageKey = m_data->small_image_key.c_str();
++	discord_presence.smallImageText = m_data->small_image_text.c_str();
++	discord_presence.partyId = m_data->party_id.c_str();
++	discord_presence.partySize = m_data->party_size;
++	discord_presence.partyMax = m_data->party_max;
++	// discord_presence.matchSecret = "4b2fdce12f639de8bfa7e3591b71a0d679d7c93f";
++	// discord_presence.spectateSecret = "e7eb30d2ee025ed05c71ea495f770b76454ee4e0";
++	// discord_presence.instance = 1;
++	Discord_UpdatePresence(&discord_presence);
++}
++
++void Discord::handleDiscordReady()
++{
++	infostream << "Discord is ready" << std::endl;
++}
++
++void Discord::handleDiscordError(int errcode, const char *message)
++{
++	errorstream << "Error discord : " << std::to_string(errcode) << " " << message
++		    << std::endl;
++}
+diff --git a/src/client/discord.h b/src/client/discord.h
+new file mode 100644
+index 000000000..5f96d6bed
+--- /dev/null
++++ b/src/client/discord.h
+@@ -0,0 +1,47 @@
++/*
++Minetest
++Copyright (C) 2018 Dumbeldor, Vincent Glize <vincent.glize@live.fr>
++
++This program is free software; you can redistribute it and/or modify
++it under the terms of the GNU Lesser General Public License as published by
++the Free Software Foundation; either version 2.1 of the License, or
++(at your option) any later version.
++
++This program is distributed in the hope that it will be useful,
++but WITHOUT ANY WARRANTY; without even the implied warranty of
++MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++GNU Lesser General Public License for more details.
++
++You should have received a copy of the GNU Lesser General Public License along
++with this program; if not, write to the Free Software Foundation, Inc.,
++51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
++*/
++
++#pragma once
++#include <iostream>
++#include <memory>
++
++struct DataRichPresence;
++
++class Discord
++{
++public:
++	Discord();
++	~Discord();
++
++	static std::unique_ptr<Discord> createDiscordSingleton();
++	void init();
++
++	void setState(const std::string &state);
++	void setDetails(const std::string &details);
++	void updatePresence();
++
++	static void handleDiscordError(int errcode, const char *message);
++	static void handleDiscordReady();
++
++private:
++	static const std::string s_application_id;
++	std::unique_ptr<DataRichPresence> m_data;
++};
++
++extern std::unique_ptr<Discord> g_discord;
 diff --git a/src/cmake_config.h.in b/src/cmake_config.h.in
 index cfcee4b58..21ecc930a 100644
 --- a/src/cmake_config.h.in
