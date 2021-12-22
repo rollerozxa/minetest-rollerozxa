@@ -1,7 +1,7 @@
 # Maintainer:  ROllerozxa <temporaryemail4meh [gee mail]>
 pkgname=minetest-rollerozxa
 _pkgname=minetest
-pkgver=5.4.0.r452.gd9d219356
+pkgver=5.4.0.r467.g0c4929f02
 pkgrel=1
 pkgdesc='Voxel-based sandbox game engine (ROllerozxa''s personal Minetest package with patches)'
 url='https://www.minetest.net/'
@@ -12,8 +12,8 @@ depends=('bzip2' 'libpng' 'libjpeg' 'mesa' 'sqlite' 'openal' 'libvorbis' 'curl'
 		'freetype2' 'luajit' 'leveldb' 'gettext' 'hiredis' 'spatialindex' 'gmp' 'discord-rpc-api')
 source=('git+https://github.com/minetest/'minetest{,_game}.git
 		'git+https://github.com/minetest/irrlicht.git'
-		'minetest_discord_rpc.patch')
-sha1sums=('SKIP' 'SKIP' 'SKIP' 'SKIP')
+		{minetest_discord_rpc,faster_gamebar_pagination}'.patch')
+sha1sums=('SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP')
 
 conflicts=("${_pkgname}"{,-common,-server})
 provides=("${_pkgname}"{,-common,-server})
@@ -25,6 +25,7 @@ pkgver() {
 prepare() {
 	cd minetest
 	patch -p1 -i "$srcdir/minetest_discord_rpc.patch"
+	patch -p1 -i "$srcdir/faster_gamebar_pagination.patch"
 }
 
 build() {
