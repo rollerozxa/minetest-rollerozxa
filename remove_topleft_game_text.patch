@@ -1,0 +1,20 @@
+diff --git a/builtin/mainmenu/tab_local.lua b/builtin/mainmenu/tab_local.lua
+index e77c6f04d..a882b3acf 100644
+--- a/builtin/mainmenu/tab_local.lua
++++ b/builtin/mainmenu/tab_local.lua
+@@ -35,7 +35,6 @@ if enable_gamebar then
+ 
+ 	-- Apply menu changes from given game
+ 	function apply_game(game)
+-		core.set_topleft_text(game.name)
+ 		core.settings:set("menu_last_game", game.id)
+ 		menudata.worldlist:set_filtercriteria(game.id)
+ 
+@@ -388,7 +387,6 @@ if enable_gamebar then
+ 			if gamebar then
+ 				gamebar:hide()
+ 			end
+-			core.set_topleft_text("")
+ 			mm_game_theme.update(new_tab,nil)
+ 		end
+ 	end
