@@ -1,0 +1,31 @@
+diff --git a/builtin/mainmenu/common.lua b/builtin/mainmenu/common.lua
+index 8db8bb8d1..25757586a 100644
+--- a/builtin/mainmenu/common.lua
++++ b/builtin/mainmenu/common.lua
+@@ -131,12 +131,7 @@ function menu_render_worldlist(show_gameid)
+ 
+ 	local row
+ 	for i, v in ipairs(current_worldlist) do
+-		row = v.name
+-		if show_gameid == nil or show_gameid == true then
+-			row = row .. " [" .. v.gameid .. "]"
+-		end
+-		retval[#retval+1] = core.formspec_escape(row)
+-
++		retval[#retval+1] = core.formspec_escape(v.name)
+ 	end
+ 
+ 	return table.concat(retval, ",")
+diff --git a/builtin/mainmenu/tab_local.lua b/builtin/mainmenu/tab_local.lua
+index e77c6f04d..4cb87dc26 100644
+--- a/builtin/mainmenu/tab_local.lua
++++ b/builtin/mainmenu/tab_local.lua
+@@ -187,7 +187,7 @@ local function get_formspec(tabview, name, tabdata)
+ 			damage ..
+ 			host ..
+ 			"textlist[3.9,0.4;7.9,3.45;sp_worlds;" ..
+-			menu_render_worldlist(not enable_gamebar) ..
++			menu_render_worldlist() ..
+ 			";" .. index .. "]"
+ 
+ 	if core.settings:get_bool("enable_server") and disabled_settings["enable_server"] == nil then
