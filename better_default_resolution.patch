@@ -1,0 +1,61 @@
+diff --git a/builtin/settingtypes.txt b/builtin/settingtypes.txt
+index 22e69e30a..390e5faaa 100644
+--- a/builtin/settingtypes.txt
++++ b/builtin/settingtypes.txt
+@@ -665,13 +665,13 @@ viewing_range (Viewing range) int 190 20 4000
+ near_plane (Near plane) float 0.1 0 0.25
+ 
+ #    Width component of the initial window size. Ignored in fullscreen mode.
+-screen_w (Screen width) int 1024 1
++screen_w (Screen width) int 1280 1
+ 
+ #    Height component of the initial window size. Ignored in fullscreen mode.
+-screen_h (Screen height) int 600 1
++screen_h (Screen height) int 720 1
+ 
+ #    Save window size automatically when modified.
+-autosave_screensize (Autosave screen size) bool true
++autosave_screensize (Autosave screen size) bool false
+ 
+ #    Fullscreen mode.
+ fullscreen (Full screen) bool false
+diff --git a/minetest.conf.example b/minetest.conf.example
+index 919c2d52c..26c23e335 100644
+--- a/minetest.conf.example
++++ b/minetest.conf.example
+@@ -758,15 +758,15 @@
+ 
+ #    Width component of the initial window size. Ignored in fullscreen mode.
+ #    type: int min: 1
+-# screen_w = 1024
++# screen_w = 1280
+ 
+ #    Height component of the initial window size. Ignored in fullscreen mode.
+ #    type: int min: 1
+-# screen_h = 600
++# screen_h = 720
+ 
+ #    Save window size automatically when modified.
+ #    type: bool
+-# autosave_screensize = true
++# autosave_screensize = false
+ 
+ #    Fullscreen mode.
+ #    type: bool
+diff --git a/src/defaultsettings.cpp b/src/defaultsettings.cpp
+index 47790a552..4ef854d7d 100644
+--- a/src/defaultsettings.cpp
++++ b/src/defaultsettings.cpp
+@@ -175,9 +175,9 @@ void set_default_settings()
+ #if ENABLE_GLES
+ 	settings->setDefault("near_plane", "0.1");
+ #endif
+-	settings->setDefault("screen_w", "1024");
+-	settings->setDefault("screen_h", "600");
+-	settings->setDefault("autosave_screensize", "true");
++	settings->setDefault("screen_w", "1280");
++	settings->setDefault("screen_h", "720");
++	settings->setDefault("autosave_screensize", "false");
+ 	settings->setDefault("fullscreen", "false");
+ 	settings->setDefault("vsync", "false");
+ 	settings->setDefault("fov", "72");

@@ -18,7 +18,7 @@ conflicts=("${_pkgname}"{,-common,-server})
 provides=("${_pkgname}"{,-common,-server})
 
 # patches
-_patches=('faster_gamebar_pagination' 'minetest_discord_rpc')
+_patches=('better_default_resolution' 'faster_gamebar_pagination' 'minetest_discord_rpc')
 for i in "${_patches[@]}"; do
 	source+=($i'.patch')
 	sha1sums+=(SKIP)
