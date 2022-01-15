@@ -46,7 +46,8 @@ build() {
 		-DENABLE_POSTGRESQL=0 \
 		-DENABLE_SPATIAL=1 \
 		-DENABLE_REDIS=1 \
-		-DENABLE_LUAJIT=1
+		-DENABLE_LUAJIT=1 \
+		-DVERSION_EXTRA="rollerozxa"
 	ninja
 }
 
