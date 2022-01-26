@@ -1,7 +1,7 @@
 # Maintainer:  ROllerozxa <temporaryemail4meh [gee mail]>
 pkgname=minetest-rollerozxa
 _pkgname=minetest
-pkgver=5.4.0.r501.g7c93b2d7a
+pkgver=5.4.0.r559.g48e508052
 pkgrel=1
 pkgdesc='Voxel-based sandbox game engine (ROllerozxa''s personal Minetest package with patches)'
 url='https://www.minetest.net/'
