@@ -24,6 +24,13 @@ for i in "${_patches[@]}"; do
 	sha1sums+=(SKIP)
 done
 
+# complete source files
+_sources=('discord.cpp' 'discord.h')
+for i in "${_sources[@]}"; do
+	source+=($i)
+	sha1sums+=(SKIP)
+done
+
 pkgver() {
 	git -C "${_pkgname}" describe --long --tags | sed 's/\([^-]*-g\)/r\1/;s/-/./g'
 }
@@ -34,6 +41,8 @@ prepare() {
 	for i in "${_patches[@]}"; do
 		patch -p1 -i '../'$i'.patch'
 	done
+	
+	cp '../discord.'{cpp,h} 'src/client/'
 }
 
 build() {
